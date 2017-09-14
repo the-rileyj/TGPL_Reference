@@ -22,10 +22,16 @@ func main() {
 	for _, url := range os.Args[1:] {
 		go fetch(url, ch) // start a goroutine
 	}
+	out := ""
 	for range os.Args[1:] {
-		fmt.Println(<-ch) // receive from channel ch
+		out += <-ch // receive from channel ch
 	}
-	fmt.Printf("%.2fs elapsed\n", time.Since(start).Seconds())
+	fi, err := os.OpenFile("crawl_out.txt", os.O_CREATE, 0600)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "File creation error\n")
+		os.Exit(1)
+	}
+	fmt.Fprintf(fi, "%s\n%.2fs elapsed\n", out, time.Since(start).Seconds())
 }
 
 func fetch(url string, ch chan<- string) {

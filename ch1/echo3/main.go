@@ -4,7 +4,9 @@
 // See page 8.
 
 // Echo3 prints its command-line arguments.
-package main
+package echo
+
+/*package main
 
 import (
 	"fmt"
@@ -18,3 +20,4 @@ func main() {
 }
 
 //!-
+*/

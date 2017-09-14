@@ -13,22 +13,20 @@ import (
 	"image/color"
 	"image/gif"
 	"io"
+	"log"
 	"math"
 	"math/rand"
-	"os"
+	"net/http"
+	"strconv"
+	"time"
 )
 
 //!-main
 // Packages not needed by version in book.
-import (
-	"log"
-	"net/http"
-	"time"
-)
 
 //!+main
 
-var palette = []color.Color{color.White, color.Black}
+var palette = []color.Color{color.Black, color.RGBA{0xff, 0x00, 0x00, 0xff}, color.RGBA{0x00, 0xff, 0x00, 0xff}, color.RGBA{0x00, 0x00, 0xff, 0xff}}
 
 const (
 	whiteIndex = 0 // first color in palette
@@ -42,25 +40,40 @@ func main() {
 	// Thanks to Randall McPherson for pointing out the omission.
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	if len(os.Args) > 1 && os.Args[1] == "web" {
-		//!+http
-		handler := func(w http.ResponseWriter, r *http.Request) {
-			lissajous(w)
+	//if len(os.Args) > 1 && os.Args[1] == "web" {
+	//!+http
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		if cycles := r.URL.Query()["cycles"][0]; cycles != "" {
+			cycles, err := strconv.Atoi(cycles)
+			if err != nil {
+				lissajous(w, 5)
+			}
+			println("wicked")
+			lissajous(w, cycles)
+		} else {
+			lissajous(w, 5)
 		}
-		http.HandleFunc("/", handler)
-		//!-http
-		log.Fatal(http.ListenAndServe("localhost:8000", nil))
-		return
 	}
+	http.HandleFunc("/", handler)
+	//!-http
+	log.Fatal(http.ListenAndServe("localhost:8000", nil))
+	return
+	//}
 	//!+main
-	lissajous(os.Stdout)
+
+	/*gFile, err := os.OpenFile("gFile.gif", os.O_CREATE, 0600)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+	} else {
+		lissajous(gFile)
+	}*/
 }
 
-func lissajous(out io.Writer) {
+func lissajous(out io.Writer, cycles int) {
 	const (
-		cycles  = 5     // number of complete x oscillator revolutions
+		//cycles  = 5     // number of complete x oscillator revolutions
 		res     = 0.001 // angular resolution
-		size    = 100   // image canvas covers [-size..+size]
+		size    = 1000  // image canvas covers [-size..+size]
 		nframes = 64    // number of animation frames
 		delay   = 8     // delay between frames in 10ms units
 	)
@@ -70,11 +83,10 @@ func lissajous(out io.Writer) {
 	for i := 0; i < nframes; i++ {
 		rect := image.Rect(0, 0, 2*size+1, 2*size+1)
 		img := image.NewPaletted(rect, palette)
-		for t := 0.0; t < cycles*2*math.Pi; t += res {
+		for t := 0.0; t < float64(cycles)*2*math.Pi; t += res {
 			x := math.Sin(t)
 			y := math.Sin(t*freq + phase)
-			img.SetColorIndex(size+int(x*size+0.5), size+int(y*size+0.5),
-				blackIndex)
+			img.SetColorIndex(size+int(x*size+0.5), size+int(y*size+0.5), uint8(rand.Intn(3)+1))
 		}
 		phase += 0.1
 		anim.Delay = append(anim.Delay, delay)
